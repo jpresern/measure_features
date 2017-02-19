@@ -5,6 +5,10 @@ Script opens image file. If there is accompanying .txt file containing
 experimental settings, it tries to fetch the pixel size and scale bar 
 size. 
 
+Startup parameters:
+--f ... opens file specified. Example:
+./measure_features.py --f ./samples/Vzorec_120_005.tif
+
 Script offers measuring of two qualities, accessible via console 
 interaction:
 1) area measurement
