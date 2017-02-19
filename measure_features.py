@@ -2,7 +2,6 @@
 
 import sys
 import re
-import warnings
 import pandas as pd
 import numpy as np
 import matplotlib.cm as cm
@@ -12,14 +11,10 @@ import matplotlib.image as mimg
 import matplotlib.path as mpath
 from itertools import product, compress
 from datetime import datetime
-import tkinter as tk
-from tkinter.filedialog import askopenfilename
-from tkinter.messagebox import showerror
-import easygui as easy
-from IPython import embed
+from optparse import OptionParser
 
 
-__author__ = "jpresern", "bpiskur"
+__author__ = "jpresern, bpiskur"
 
 
 def prepare_storage():
@@ -69,6 +64,9 @@ def store_distance(df, fn, xy_pairs, distance, parallel=1):
 
 def drawing_board():
     """ create image with axes """
+
+    #TODO: separate axis for image and for labeling. This will allow layering of .pdf, hopefully
+
     figure = plt.figure(figsize=(8, 7.5))
     axis2 = figure.add_axes([0.1, 0.1, 0.85, 0.85])
     # axis1 = axis2.twinx()
@@ -115,36 +113,41 @@ def read_in_settings (fn):
     barsize_pixels = None
 
     global date, date
-    fn += '.txt'
-    file = open(fn, 'r')
-    for line in file.readlines():
-        if re.search('CM_MAG', line):
-            magnification = line.split(' ')[-1]
-            magnification = np.float(magnification)
-            print('Magnification: ', magnification)
-        else:
-            magnification = 'data not available'
-        if re.search('CM_TIME', line):
-            zeit = line.split(' ')[-1]
-            # zeit = np.float(zeit)
-            print('Time of scan: ', zeit)
-        else:
-            zeit = 'data not available'
-        if re.search('CM_DATE', line):
-            date = line.split(' ')[-1]
-            # date = np.float(date)
-            print('Date of scan: ', date)
-        else:
-            date = 'data not available'
-        if re.search('SM_MICRON_BAR', line):
-            barsize_pixels = line.split(' ')[-1]
-            barsize_pixels = np.float(barsize_pixels)
-            print('Length of scale bar in pixels: ', barsize_pixels)
-        if re.search('SM_MICRON_MARKER', line):
-            barsize = line.split(' ')[-1]
-            if re.search('um', barsize):
-                barsize = np.float(barsize.split('u')[0])
-                print('Length of scale bar in micrometers: ', barsize)
+    fn = fn + '.txt'
+    try:
+        file = open(fn, 'r')
+
+        for line in file.readlines():
+            if re.search('CM_MAG', line):
+                magnification = line.split(' ')[-1]
+                magnification = np.float(magnification)
+                print('Magnification: ', magnification)
+            else:
+                magnification = 'data not available'
+            if re.search('CM_TIME', line):
+                zeit = line.split(' ')[-1]
+                # zeit = np.float(zeit)
+                print('Time of scan: ', zeit)
+            else:
+                zeit = 'data not available'
+            if re.search('CM_DATE', line):
+                date = line.split(' ')[-1]
+                # date = np.float(date)
+                print('Date of scan: ', date)
+            else:
+                date = 'data not available'
+            if re.search('SM_MICRON_BAR', line):
+                barsize_pixels = line.split(' ')[-1]
+                barsize_pixels = np.float(barsize_pixels)
+                print('Length of scale bar in pixels: ', barsize_pixels)
+            if re.search('SM_MICRON_MARKER', line):
+                barsize = line.split(' ')[-1]
+                if re.search('um', barsize):
+                    barsize = np.float(barsize.split('u')[0])
+                    print('Length of scale bar in micrometers: ', barsize)
+    except:
+        pass
+
     if (barsize == None) | (barsize_pixels == None):
 
         print('There are no calibration data in log file. Starting calibration')
@@ -192,7 +195,7 @@ def mark_features(fig, ax2, col, path):
     """
 
     ax2.set_title('Select features you are interested in. Press ENTER when done')
-    x = np.asarray(fig.ginput(n=-1))
+    x = np.asarray(fig.ginput(n=-1, timeout=0))
     within_patch = list(compress(x, path.contains_points(x)))
     for i in range(len(within_patch)):
         ax2.plot(within_patch[i][0], within_patch[i][1], linestyle='', marker='+', color=col, markersize=10)
@@ -218,7 +221,7 @@ def select_area(filename, fig, ax2, storage, pixsize=1):
     while more == 'y':
         fig.suptitle(filename)
         ax2.set_title('Select corners of the area you are interested in. Press ENTER when done')
-        x = np.asarray(fig.ginput(n=-1))
+        x = np.asarray(fig.ginput(n=-1, timeout=0))
         ph.append(ax2.add_patch(mpatch.Polygon(x, facecolor=farba[counter], alpha=0.2)))
         ax2.set_title('Are you happy? Press Y to store data or N to drop them')
         happiness = input('Are you happy? Press Y to store data or N to drop them\n')
@@ -255,7 +258,7 @@ def measure_distance(filename, fig, ax2, storage, pix_size=1):
     counter = 0
     more = 'y'
     while more == 'y':
-        xy = np.asarray(fig.ginput(n=2))
+        xy = np.asarray(fig.ginput(n=2, timeout=0))
         dist = np.linalg.norm(xy[0] - xy[1])
         dist *= pix_size
         linija = ax2.plot(xy[:, 0], xy[:, 1], marker="+", markersize=8)
@@ -271,15 +274,28 @@ def measure_distance(filename, fig, ax2, storage, pix_size=1):
 
 if __name__ == '__main__':
 
-    # root=tk.Tk()
-    # root.filename = askopenfilename(filetypes = ('images', '*.tiff'))
+    args = sys.argv
+    to_be_parsed = args[1:]
 
-    # filename = easy.fileopenbox(msg='Select image file to process')
-    #TODO: file selector
-    # filename = './samples/Vzorec_120_005.tif'
-    filename = './samples/Vzorec_118_009'
+    # define options parser
+    parser = OptionParser()
+    parser.add_option("-f", "--file", action="store", type="string", dest="filename",
+                      default='')
+
+    (options, args) = parser.parse_args(args)
+
+    if options.filename:
+        filename = options.filename
+        fn = filename.split('.')[-2]
+        fn = '.' + fn
+        ext = filename.split('.')[-1]
+        ext = '.' + ext
+    else:
+        fn = './samples/Vzorec_118_009'
+        ext = '.tif'
+    fajl = fn + ext
     """ read in the image file """
-    img = mimg.imread(filename + '.tif')
+    img = mimg.imread(fajl)
 
     """ show loaded image """
     fig, ax2, ax1 = drawing_board()
@@ -292,7 +308,7 @@ if __name__ == '__main__':
     im_index = create_coord_pairs(img.shape)
 
     """ get experimental metadata"""
-    magnification, barsize, barsize_pixels, zeit, date = read_in_settings(filename)
+    magnification, barsize, barsize_pixels, zeit, date = read_in_settings(fn)
     pix_size = pixel_size(barsize, barsize_pixels)
 
     """ prepare empty storage """
@@ -302,11 +318,11 @@ if __name__ == '__main__':
     """ main loop """
     stay = True
     while stay:
-        ax2.set_title('Now what? Measure (A)rea, Measure (D)distance, (Q)uit')
-        now_what = input('Now what? Measure (A)rea, Measure (D)distance, (Q)uit\n')
+        ax2.set_title('Now what? Measure (A)rea, Measure (L)ength, (Q)uit')
+        now_what = input('Now what? Measure (A)rea, Measure (L)ength, (Q)uit\n')
         if now_what == 'a':
             storage = select_area(filename, fig, ax2, storage, pix_size)
-        elif now_what == 'd':
+        elif now_what == 'l':
             storage = measure_distance(filename, fig, ax2, storage, pix_size)
         elif now_what == 'q':
             stay = False
@@ -314,9 +330,9 @@ if __name__ == '__main__':
     ax2.set_title('Save measurements? Y/N')
     safe = input('Save measurements? Y/N\n')
     if safe == 'y':
-        storage.to_csv(filename + '.csv')
+        storage.to_csv(fn + '.csv')
         ax2.set_title('')
-        fig.savefig(filename + '.pdf')
+        fig.savefig(fn + '.pdf')
         exit()
     elif safe == 'n':
         exit()
