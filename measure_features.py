@@ -11,6 +11,11 @@ import matplotlib.patches as mpatch
 import matplotlib.image as mimg
 import matplotlib.path as mpath
 from itertools import product, compress
+from datetime import datetime
+import tkinter as tk
+from tkinter.filedialog import askopenfilename
+from tkinter.messagebox import showerror
+import easygui as easy
 from IPython import embed
 
 
@@ -29,35 +34,48 @@ def prepare_storage():
     :return df: pandas dataframe, ready
     """
 
-    columns = ['sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
+    columns = ['datetime','sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
     df = pd.DataFrame(columns=columns)
 
     return df
 
 
 def store_area(df, fn, xy_pairs, area, parallel=1):
-    columns = ['sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
+    columns = ['datetime','sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
     df_empty = pd.DataFrame(columns=columns)
     for i, v in enumerate(xy_pairs):
-        df_empty.loc[i, :] = fn, parallel, 'area', 'corner', v[0], v[1], 'surface', area
-    return pd.concat([df, df_empty])
+        df_empty.loc[i, :] = datetime.now(), fn, parallel, 'area', 'corner', v[0], v[1], 'surface', area
+    return pd.concat([df, df_empty], ignore_index=True)
 
 
 def store_features(df, fn, xy_pairs, area, parallel=1):
-    columns = ['sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
+    columns = ['datetime','sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
     df_empty = pd.DataFrame(columns=columns)
     density = xy_pairs.shape[0]/area
     for i, v in enumerate(xy_pairs):
-        df_empty.loc[i, :] = fn, parallel, 'area', 'points', v[0], v[1], 'density', density
-    return pd.concat([df, df_empty])
+        df_empty.loc[i, :] = datetime.now(), fn, parallel, 'points', 'points', v[0], v[1], 'density', density
+    return pd.concat([df, df_empty], ignore_index=True)
+
+
+def store_distance(df, fn, xy_pairs, distance, parallel=1):
+    columns = ['datetime','sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
+    df_empty = pd.DataFrame(columns=columns)
+    df_empty.loc[0, :] = datetime.now(), fn, parallel, 'distance', 'start_point', xy_pairs[0, 0], xy_pairs[0, 1], \
+                         'length', distance
+    df_empty.loc[1, :] = datetime.now(), fn, parallel, 'distance', 'end_point', xy_pairs[1, 0], xy_pairs[1, 1], \
+                         'length', distance
+    return pd.concat([df, df_empty], ignore_index=True)
 
 
 def drawing_board():
     """ create image with axes """
     figure = plt.figure(figsize=(8, 7.5))
     axis2 = figure.add_axes([0.1, 0.1, 0.85, 0.85])
+    # axis1 = axis2.twinx()
+    # axis1.set_yticks([])
+    axis1 = axis2
 
-    return figure, axis2
+    return figure, axis2, axis1
 
 
 def calibrate(fig, ax):
@@ -71,8 +89,8 @@ def calibrate(fig, ax):
 
     size = input('Type the length of the scale bar in micrometers')
 
-    dx /= size
-    return dx
+    pixel_size = dx/size
+    return dx, size, pixel_size
 
 
 def pixel_size(bar_size, bar_size_pixels):
@@ -93,6 +111,8 @@ def read_in_settings (fn):
     :param fn: file name
     :returns ...:
     """
+    barsize = None
+    barsize_pixels = None
 
     global date, date
     fn += '.txt'
@@ -102,23 +122,35 @@ def read_in_settings (fn):
             magnification = line.split(' ')[-1]
             magnification = np.float(magnification)
             print('Magnification: ', magnification)
-        elif re.search('CM_TIME', line):
+        else:
+            magnification = 'data not available'
+        if re.search('CM_TIME', line):
             zeit = line.split(' ')[-1]
             # zeit = np.float(zeit)
             print('Time of scan: ', zeit)
-        elif re.search('CM_DATE', line):
+        else:
+            zeit = 'data not available'
+        if re.search('CM_DATE', line):
             date = line.split(' ')[-1]
             # date = np.float(date)
             print('Date of scan: ', date)
-        elif re.search('SM_MICRON_BAR', line):
+        else:
+            date = 'data not available'
+        if re.search('SM_MICRON_BAR', line):
             barsize_pixels = line.split(' ')[-1]
             barsize_pixels = np.float(barsize_pixels)
             print('Length of scale bar in pixels: ', barsize_pixels)
-        elif re.search('SM_MICRON_MARKER', line):
+        if re.search('SM_MICRON_MARKER', line):
             barsize = line.split(' ')[-1]
             if re.search('um', barsize):
                 barsize = np.float(barsize.split('u')[0])
                 print('Length of scale bar in micrometers: ', barsize)
+    if (barsize == None) | (barsize_pixels == None):
+
+        print('There are no calibration data in log file. Starting calibration')
+        ax2.set_title('There are no calibration data in log file. Starting calibration')
+        barsize, barsize_pixels, pix_size = calibrate(fig, ax2)
+
 
     return magnification, barsize, barsize_pixels, zeit, date
 
@@ -167,7 +199,7 @@ def mark_features(fig, ax2, col, path):
     return x
 
 
-def select_area(filename, fig, ax2, storage):
+def select_area(filename, fig, ax2, storage, pixsize=1):
 
     """
     Select and measures areas while true
@@ -217,8 +249,32 @@ def select_area(filename, fig, ax2, storage):
     return storage
 
 
+def measure_distance(filename, fig, ax2, storage, pix_size=1):
+    # todo: add micrometer sign
+    ax2.set_title('Measure distance between two points')
+    counter = 0
+    more = 'y'
+    while more == 'y':
+        xy = np.asarray(fig.ginput(n=2))
+        dist = np.linalg.norm(xy[0] - xy[1])
+        dist *= pix_size
+        linija = ax2.plot(xy[:, 0], xy[:, 1], marker="+", markersize=8)
+        ax2.text(np.mean(xy, axis = 0)[0], np.mean(xy, axis = 0)[1], str(np.round(dist, 0)) + r' $\mu$m',
+                 color=linija[0].get_color())
+        storage = store_distance(storage, filename, xy, distance=dist, parallel=counter)
+        counter += 1
+        ax2.set_title('One more? Y/N')
+        more = input('One more? Y/N\n')
+    ax2.set_title('')
+    return storage
+
+
 if __name__ == '__main__':
 
+    # root=tk.Tk()
+    # root.filename = askopenfilename(filetypes = ('images', '*.tiff'))
+
+    # filename = easy.fileopenbox(msg='Select image file to process')
     #TODO: file selector
     # filename = './samples/Vzorec_120_005.tif'
     filename = './samples/Vzorec_118_009'
@@ -226,8 +282,9 @@ if __name__ == '__main__':
     img = mimg.imread(filename + '.tif')
 
     """ show loaded image """
-    fig, ax2 = drawing_board()
-    ax2.imshow(img)
+    fig, ax2, ax1 = drawing_board()
+    ax1.imshow(img)
+    # fig.show()
     ax2.set_xlabel('pixels')
     ax2.set_ylabel('pixels')
 
@@ -236,25 +293,34 @@ if __name__ == '__main__':
 
     """ get experimental metadata"""
     magnification, barsize, barsize_pixels, zeit, date = read_in_settings(filename)
-    try:
-        pix_size = pixel_size(barsize, barsize_pixels)
-    except:
-        print('There are no calibration data in log file. Starting calibration')
-        ax2.set_title('There are no calibration data in log file. Starting calibration')
-        pix_size = calibrate(fig, ax2)
+    pix_size = pixel_size(barsize, barsize_pixels)
 
     """ prepare empty storage """
     storage = prepare_storage()
 
     """ action """
-    ax2.set_label('Now what? Measure (A)rea, Measure (D)distance, (Q)uit')
-    now_what = input('Now what? Measure (A)rea, Measure (D)distance, (Q)uit\n')
-    if now_what == 'a':
-        storage = select_area(filename, fig, ax2, storage)
-    elif now_what == 'd':
-        pass
-        # TODO: function to measure length
-    elif now_what == 'q':
+    """ main loop """
+    stay = True
+    while stay:
+        ax2.set_title('Now what? Measure (A)rea, Measure (D)distance, (Q)uit')
+        now_what = input('Now what? Measure (A)rea, Measure (D)distance, (Q)uit\n')
+        if now_what == 'a':
+            storage = select_area(filename, fig, ax2, storage, pix_size)
+        elif now_what == 'd':
+            storage = measure_distance(filename, fig, ax2, storage, pix_size)
+        elif now_what == 'q':
+            stay = False
+
+    ax2.set_title('Save measurements? Y/N')
+    safe = input('Save measurements? Y/N\n')
+    if safe == 'y':
+        storage.to_csv(filename + '.csv')
+        ax2.set_title('')
+        fig.savefig(filename + '.pdf')
         exit()
-        # TODO: check if data in df and save to .csv
+    elif safe == 'n':
+        exit()
+
+
+
 
