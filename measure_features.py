@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 
+
+import tkinter as tk
+# import matplotlib.backends.backend_tkagg as backend
+import matplotlib
+matplotlib.use("TkAgg")
+matplotlib.use("Qt5Agg")
+
 import sys
 import re
 import pandas as pd
@@ -12,7 +19,7 @@ import matplotlib.path as mpath
 from itertools import product, compress
 from datetime import datetime
 from optparse import OptionParser
-
+from tkinter.filedialog import askopenfilename
 
 __author__ = "jpresern, bpiskur"
 
@@ -193,7 +200,7 @@ def mark_features(fig, ax2, col, path):
     :param storage:
     :return:
     """
-
+    # fig.canvas.manager.window.raise_()
     ax2.set_title('Select features you are interested in. Press ENTER when done')
     x = np.asarray(fig.ginput(n=-1, timeout=0))
     within_patch = list(compress(x, path.contains_points(x)))
@@ -219,6 +226,7 @@ def select_area(filename, fig, ax2, storage, pixsize=1):
     counter = 0
     ph = []
     while more == 'y':
+        # fig.canvas.manager.window.raise_()
         fig.suptitle(filename)
         ax2.set_title('Select corners of the area you are interested in. Press ENTER when done')
         x = np.asarray(fig.ginput(n=-1, timeout=0))
@@ -258,6 +266,7 @@ def measure_distance(filename, fig, ax2, storage, pix_size=1):
     counter = 0
     more = 'y'
     while more == 'y':
+        # fig.canvas.manager.window.raise_()
         xy = np.asarray(fig.ginput(n=2, timeout=0))
         dist = np.linalg.norm(xy[0] - xy[1])
         dist *= pix_size
@@ -286,16 +295,23 @@ if __name__ == '__main__':
 
     if options.filename:
         filename = options.filename
-        fn = filename.split('.')[-2]
-        fn = '.' + fn
-        ext = filename.split('.')[-1]
-        ext = '.' + ext
+
     else:
-        fn = './samples/Vzorec_118_009'
-        ext = '.tif'
-    fajl = fn + ext
+        window = tk.Tk()
+        window.withdraw()
+        # fn = './samples/Vzorec_118_009'
+        # ext = '.tif'
+        filename = askopenfilename()
+        window.destroy()
+
+    """ sort extensions etc """
+    fn = filename.split('.')[-2]
+    fn = '.' + fn
+    ext = filename.split('.')[-1]
+    ext = '.' + ext
+
     """ read in the image file """
-    img = mimg.imread(fajl)
+    img = mimg.imread(filename)
 
     """ show loaded image """
     fig, ax2, ax1 = drawing_board()
@@ -303,6 +319,7 @@ if __name__ == '__main__':
     # fig.show()
     ax2.set_xlabel('pixels')
     ax2.set_ylabel('pixels')
+    # fig.canvas.manager.window.raise_()
 
     """ create img coordinate pairs"""
     im_index = create_coord_pairs(img.shape)
