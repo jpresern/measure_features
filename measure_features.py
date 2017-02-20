@@ -20,6 +20,7 @@ from itertools import product, compress
 from datetime import datetime
 from optparse import OptionParser
 from tkinter.filedialog import askopenfilename
+from IPython import embed
 
 __author__ = "jpresern, bpiskur"
 
@@ -94,7 +95,7 @@ def calibrate(fig, ax):
 
     size = input('Type the length of the scale bar in micrometers')
 
-    pixel_size = dx/size
+    pixel_size = dx/np.float(size)
     return dx, size, pixel_size
 
 
@@ -119,7 +120,7 @@ def read_in_settings (fn):
     barsize = None
     barsize_pixels = None
 
-    global date, date
+    # global date, date
     fn = fn + '.txt'
     try:
         file = open(fn, 'r')
@@ -295,6 +296,11 @@ if __name__ == '__main__':
 
     if options.filename:
         filename = options.filename
+        """ sort extensions etc """
+        fn = filename.split('.')[-2]
+        fn = '.' + fn
+        ext = filename.split('.')[-1]
+        ext = '.' + ext
 
     else:
         window = tk.Tk()
@@ -304,11 +310,10 @@ if __name__ == '__main__':
         filename = askopenfilename()
         window.destroy()
 
-    """ sort extensions etc """
-    fn = filename.split('.')[-2]
-    fn = '.' + fn
-    ext = filename.split('.')[-1]
-    ext = '.' + ext
+        """ sort extensions etc """
+        fn = filename.split('.')[-2]
+        ext = filename.split('.')[-1]
+        ext = '.' + ext
 
     """ read in the image file """
     img = mimg.imread(filename)
