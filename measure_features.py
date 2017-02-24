@@ -152,7 +152,7 @@ def read_in_settings (fn):
                 barsize = line.split(' ')[-1]
                 if re.search('um', barsize):
                     barsize = np.float(barsize.split('u')[0])
-                    print('Length of scale bar in micrometers: ', barsize)
+                    print('Length of scale bar in micrometers:\n', barsize)
     except:
         pass
 
@@ -311,8 +311,10 @@ if __name__ == '__main__':
         window.destroy()
 
         """ sort extensions etc """
-        fn = filename.split('.')[-2]
-        ext = filename.split('.')[-1]
+        # fn = filename.split('.')[-2]
+        fn = filename.rsplit('.', maxsplit=1)[0]
+        # ext = filename.split('.')[-1]
+        ext = filename.rsplit('.', maxsplit=1)[1]
         ext = '.' + ext
 
     """ read in the image file """
