@@ -161,7 +161,7 @@ def read_in_settings (fn):
         print('There are no calibration data in log file. Starting calibration')
         ax2.set_title('There are no calibration data in log file. Starting calibration')
         barsize, barsize_pixels, pix_size = calibrate(fig, ax2)
-
+        magnification = 1
 
     return magnification, barsize, barsize_pixels, zeit, date
 
