@@ -2,10 +2,8 @@
 
 
 import tkinter as tk
-# import matplotlib.backends.backend_tkagg as backend
 import matplotlib
 matplotlib.use("TkAgg")
-matplotlib.use("Qt5Agg")
 
 import sys
 import re
@@ -19,10 +17,61 @@ import matplotlib.path as mpath
 from itertools import product, compress
 from datetime import datetime
 from optparse import OptionParser
-from tkinter.filedialog import askopenfilename
+from tkinter.filedialog import askopenfilename, asksaveasfilename
 from IPython import embed
 
 __author__ = "jpresern, bpiskur"
+
+
+def image_display(image_fn, meta_fn):
+
+    """ read in the image file """
+    img = mimg.imread(image_fn)
+
+    """ show loaded image """
+    figure, axis2, axis1 = drawing_board()
+    axis1.imshow(img)
+    figure.show()
+
+    """ get experimental metadata"""
+    mag, bar, bar_pixels, zeitgeist, datum = read_in_settings(meta_fn)
+    pix_size = pixel_size(bar, bar_pixels)
+
+    axis2.set_xticklabels(np.round(axis2.get_xticks() * pix_size, 2))
+    axis2.set_yticklabels(np.round(axis2.get_yticks() * pix_size, 2))
+    axis2.set_xlabel(r'width [$\mu$m]')
+    axis2.set_ylabel(r'height [$\mu$m]')
+
+    """ create img coordinate pairs"""
+    im_ind = create_coord_pairs(img.shape)
+
+    return figure, axis2, im_ind, pix_size
+
+
+def get_things_saved(fig, storage, file_name, suggested_name):
+    """ get filename """
+    idir = file_name.rsplit('/', maxsplit=1)[0]
+    sname = suggested_name.rsplit('.', maxsplit=1)[0]
+    window_save = tk.Tk()
+    window_save.withdraw()
+    save_fn = asksaveasfilename(initialfile=sname, filetypes=[('All files', '*')], title='Suggest file name',
+                                initialdir=idir)
+    window_save.destroy()
+
+    storage.to_csv(save_fn + '.csv')
+    """ resets instructions to nothing before save"""
+    fig.savefig(save_fn + '.pdf')
+
+
+def get_things_opened():
+
+    idir = './samples'
+    window_open = tk.Tk()
+    window_open.withdraw()
+    im_name = askopenfilename(initialdir=idir, title='Select image file')
+    window_open.destroy()
+
+    return im_name
 
 
 def prepare_storage():
@@ -201,73 +250,69 @@ def mark_features(fig, ax2, col, path):
     :param storage:
     :return:
     """
-    # fig.canvas.manager.window.raise_()
+    fig.canvas.manager.window.tkraise()
     ax2.set_title('Select features you are interested in. Press ENTER when done')
     x = np.asarray(fig.ginput(n=-1, timeout=0))
     within_patch = list(compress(x, path.contains_points(x)))
     for i in range(len(within_patch)):
-        ax2.plot(within_patch[i][0], within_patch[i][1], linestyle='', marker='+', color=col, markersize=10)
+        ax2.plot(within_patch[i][0], within_patch[i][1], linestyle='', marker='+', color=col, markersize=8)
     return x
 
 
-def select_area(filename, fig, ax2, storage, pixsize=1):
+def select_area(file, figa, axa2, store, im_ix, pixsize=1, counter=0):
 
     """
     Select and measures areas while true
-    :param filename:
-    :param fig:
-    :param ax1:
-    :param ax2:
-    :param storage:
+    :param file:
+    :param figa:
+    :param axa2:
+    :param store:
+    :param im_ix:
+    :param pixsize:
+    :param counter:
     :return:
     """
     color_spread1 = np.linspace(0.05, 0.95, 10)
     farba = [cm.Set1(x) for x in color_spread1]
-    more = 'y'
-    counter = 0
     ph = []
-    while more == 'y':
-        # fig.canvas.manager.window.raise_()
-        fig.suptitle(filename)
-        ax2.set_title('Select corners of the area you are interested in. Press ENTER when done')
-        x = np.asarray(fig.ginput(n=-1, timeout=0))
-        ph.append(ax2.add_patch(mpatch.Polygon(x, facecolor=farba[counter], alpha=0.2)))
-        ax2.set_title('Are you happy? Press Y to store data or N to drop them')
-        happiness = input('Are you happy? Press Y to store data or N to drop them\n')
 
-        if happiness == 'y':
-            ax2.set_title('STORING data')
-            p = mpath.Path(x)
-            surface_area = measure_surface(p, im_index, pix_size)
-            storage = store_area(storage, filename, x, surface_area, parallel=counter)
-            ax2.set_title('Do you wish to mark features inside area? Y or N')
-            mark_yesno = input('Do you wish to mark features inside area? Y or N\n')
+    # embed()
+    # fig.canvas.manager.window.focus()
+    figa.canvas.manager.window.tkraise()
+    figa.suptitle(file)
+    axa2.set_title('Select corners of the area you are interested in. Press ENTER when done')
+    x = np.asarray(fig.ginput(n=-1, timeout=0))
+    ph.append(axa2.add_patch(mpatch.Polygon(x, facecolor=farba[counter], alpha=0.2)))
+    axa2.set_title('Are you happy? Press Y to store data or N to drop them')
+    happiness = input('Are you happy? Press Y to store data or N to drop them\n')
 
-            if mark_yesno == 'y':
-                features = mark_features(fig, ax2, col=farba[counter], path=p)
-                storage = store_features(storage, filename, features, surface_area, parallel=counter)
-            del x, p, surface_area
+    if happiness == 'y':
+        axa2.set_title('STORING data')
+        p = mpath.Path(x)
+        surface_area = measure_surface(p, im_ix, pixsize)
+        store = store_area(store, file, x, surface_area, parallel=counter)
+        axa2.set_title('Do you wish to mark features inside area? Y or N')
+        mark_yesno = input('Do you wish to mark features inside area? Y or N\n')
 
-        elif happiness == 'n':
-            ax2.set_title('DELETING data')
-            ph[counter].remove()
-            del x
+        if mark_yesno == 'y':
+            features = mark_features(figa, axa2, col=farba[counter], path=p)
+            store = store_features(store, file, features, surface_area, parallel=counter)
+        del x, p, surface_area
 
-        ax2.set_title('press Y - select another surface - press N if done', color='blue')
-        more = input('press Y - select another surface - press N if done\n')
-        if more == 'y':
-            counter += 1
+    elif happiness == 'n':
+        axa2.set_title('DELETING data')
+        ph[counter].remove()
+        del x
 
-    return storage
+    return store, counter
 
 
-def measure_distance(filename, fig, ax2, storage, pix_size=1):
+def measure_distance(filename, fig, ax2, storage, pix_size=1, counter=0):
     # todo: add micrometer sign
     ax2.set_title('Measure distance between two points')
-    counter = 0
     more = 'y'
     while more == 'y':
-        # fig.canvas.manager.window.raise_()
+        fig.canvas.manager.window.tkraise()
         xy = np.asarray(fig.ginput(n=2, timeout=0))
         dist = np.linalg.norm(xy[0] - xy[1])
         dist *= pix_size
@@ -279,7 +324,7 @@ def measure_distance(filename, fig, ax2, storage, pix_size=1):
         ax2.set_title('One more? Y/N')
         more = input('One more? Y/N\n')
     ax2.set_title('')
-    return storage
+    return storage, counter
 
 
 if __name__ == '__main__':
@@ -294,72 +339,56 @@ if __name__ == '__main__':
 
     (options, args) = parser.parse_args(args)
 
-    if options.filename:
-        filename = options.filename
-        """ sort extensions etc """
-        fn = filename.split('.')[-2]
-        fn = '.' + fn
-        ext = filename.split('.')[-1]
-        ext = '.' + ext
+    """ outer main loop """
+    do_work = True
+    while do_work:
 
-    else:
-        window = tk.Tk()
-        window.withdraw()
-        # fn = './samples/Vzorec_118_009'
-        # ext = '.tif'
-        filename = askopenfilename()
-        window.destroy()
+        if options.filename:
+            filename = options.filename
+
+        else:
+            filename = get_things_opened()
+
 
         """ sort extensions etc """
-        # fn = filename.split('.')[-2]
         fn = filename.rsplit('.', maxsplit=1)[0]
-        # ext = filename.split('.')[-1]
         ext = filename.rsplit('.', maxsplit=1)[1]
         ext = '.' + ext
+        title_fn = filename.rsplit('/', maxsplit=1)[-1]
 
-    """ read in the image file """
-    img = mimg.imread(filename)
+        """ load image, load meta data, display image and calibrate """
+        fig, ax2, im_index, pix_size = image_display(filename, fn)
 
-    """ show loaded image """
-    fig, ax2, ax1 = drawing_board()
-    ax1.imshow(img)
-    # fig.show()
-    ax2.set_xlabel('pixels')
-    ax2.set_ylabel('pixels')
-    # fig.canvas.manager.window.raise_()
+        """ prepare empty storage """
+        storage = prepare_storage()
 
-    """ create img coordinate pairs"""
-    im_index = create_coord_pairs(img.shape)
+        """ action """
+        """ main loop """
+        stay = True
+        counter = 0
+        while stay:
+            ax2.set_title('Now what? Measure (A)rea, Measure (L)ength, (C)lose image')
+            now_what = input('Now what? Measure (A)rea, Measure (L)ength, (C)lose image\n')
+            if now_what == 'a':
+                storage, counter = select_area(title_fn, fig, ax2, storage, im_index, pix_size, counter)
+            elif now_what == 'l':
+                storage, counter = measure_distance(title_fn, fig, ax2, storage, pix_size, counter)
+            elif now_what == 'c':
+                ax2.set_title('Save measurements? Y/N')
+                safe = input('Save measurements? Y/N\n')
+                if safe == 'y':
+                    ax2.set_title('')
+                    get_things_saved(fig, storage, filename, title_fn)
+                elif safe == 'n':
+                    pass
+                stay = False
+                plt.close(fig)
+            counter += 1
+        und_jetzt = input('And now what? (L)oad new image, or (Q)uit?\n')
+        if (und_jetzt == 'q') or (und_jetzt == 'Q'):
+            do_work = False
 
-    """ get experimental metadata"""
-    magnification, barsize, barsize_pixels, zeit, date = read_in_settings(fn)
-    pix_size = pixel_size(barsize, barsize_pixels)
-
-    """ prepare empty storage """
-    storage = prepare_storage()
-
-    """ action """
-    """ main loop """
-    stay = True
-    while stay:
-        ax2.set_title('Now what? Measure (A)rea, Measure (L)ength, (Q)uit')
-        now_what = input('Now what? Measure (A)rea, Measure (L)ength, (Q)uit\n')
-        if now_what == 'a':
-            storage = select_area(filename, fig, ax2, storage, pix_size)
-        elif now_what == 'l':
-            storage = measure_distance(filename, fig, ax2, storage, pix_size)
-        elif now_what == 'q':
-            stay = False
-
-    ax2.set_title('Save measurements? Y/N')
-    safe = input('Save measurements? Y/N\n')
-    if safe == 'y':
-        storage.to_csv(fn + '.csv')
-        ax2.set_title('')
-        fig.savefig(fn + '.pdf')
-        exit()
-    elif safe == 'n':
-        exit()
+    exit()
 
 
 
