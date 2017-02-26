@@ -50,7 +50,7 @@ def image_display(image_fn, meta_fn):
     return figure, axis2, im_ind, pix_size
 
 
-def get_things_saved(figa, store, file_name, suggested_name):
+def get_things_saved(figa, store, store_short, file_name, suggested_name):
     """ get filename """
     idir = file_name.rsplit('/', maxsplit=1)[0]
     sname = suggested_name.rsplit('.', maxsplit=1)[0]
@@ -61,6 +61,7 @@ def get_things_saved(figa, store, file_name, suggested_name):
     window_save.destroy()
 
     store.to_csv(save_fn + '.csv')
+    store_short.to_csv(save_fn + '_short.csv')
     """ resets instructions to nothing before save"""
     figa.savefig(save_fn + '.pdf')
 
@@ -109,31 +110,73 @@ def prepare_short_storage():
     return df
 
 
-def store_area(df, file, xy_pairs, area, parallel=1):
+def store_area(df, df2, file, xy_pairs, area, parallel=1):
+    """
+    Appends measurements to df (full data storage) and df2 (short data storage)
+    :param df:
+    :param df2:
+    :param file:
+    :param xy_pairs:
+    :param area:
+    :param parallel:
+    :return:
+    """
     columns = ['datetime', 'sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
+    columns2 = ['datetime', 'sample', 'parallel', 'quality', 'quantity']
     df_empty = pd.DataFrame(columns=columns)
+    df_empty2 = pd.DataFrame(columns=columns2)
     for i, v in enumerate(xy_pairs):
         df_empty.loc[i, :] = datetime.now(), file, parallel, 'area', 'corner', v[0], v[1], 'surface', area
-    return pd.concat([df, df_empty], ignore_index=True)
+    df_empty2.loc[0, :] = datetime.now(), file, parallel, 'surface', area
+
+    return pd.concat([df, df_empty], ignore_index=True), pd.concat([df2, df_empty2], ignore_index=True)
 
 
-def store_features(df, file, xy_pairs, area, parallel=1):
+def store_features(df, df2, file, xy_pairs, area, parallel=1):
+    """
+    appends feature count and density fo full storage (df) and short storage (df2)
+    :param df:
+    :param df2:
+    :param file:
+    :param xy_pairs:
+    :param area:
+    :param parallel:
+    :return:
+    """
     columns = ['datetime', 'sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
+    columns2 = ['datetime', 'sample', 'parallel', 'quality', 'quantity']
     df_empty = pd.DataFrame(columns=columns)
+    df_empty2 = pd.DataFrame(columns=columns2)
     density = xy_pairs.shape[0] / area
     for i, v in enumerate(xy_pairs):
         df_empty.loc[i, :] = datetime.now(), file, parallel, 'points', 'points', v[0], v[1], 'density', density
-    return pd.concat([df, df_empty], ignore_index=True)
+    df_empty2.loc[0, :] = datetime.now(), file, parallel, 'density', density
+    df_empty2.loc[1, :] = datetime.now(), file, parallel, 'count', xy_pairs.shape[0]
+
+    return pd.concat([df, df_empty], ignore_index=True), pd.concat([df2, df_empty2], ignore_index=True)
 
 
-def store_distance(df, file, xy_pairs, distance, parallel=1):
+def store_distance(df, df2, file, xy_pairs, distance, parallel=1):
+    """
+    :param df:
+    :param df2:
+    :param file:
+    :param xy_pairs:
+    :param distance:
+    :param parallel:
+    :return:
+    """
     columns = ['datetime', 'sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
+    columns2 = ['datetime', 'sample', 'parallel', 'quality', 'quantity']
     df_empty = pd.DataFrame(columns=columns)
+    df_empty2 = pd.DataFrame(columns=columns2)
     df_empty.loc[0, :] = datetime.now(), file, parallel, 'distance', 'start_point', xy_pairs[0, 0], xy_pairs[0, 1], \
                          'length', distance
     df_empty.loc[1, :] = datetime.now(), file, parallel, 'distance', 'end_point', xy_pairs[1, 0], xy_pairs[1, 1], \
                          'length', distance
-    return pd.concat([df, df_empty], ignore_index=True)
+    df_empty2.loc[0, :] = datetime.now(), file, parallel, 'length', distance
+
+    return pd.concat([df, df_empty], ignore_index=True), pd.concat([df2, df_empty2], ignore_index=True)
 
 
 def drawing_board():
@@ -243,8 +286,8 @@ def create_coord_pairs(image_shape):
 
 
 def measure_surface(path, im_ix, pixie_size):
-    patch_points = list(compress(im_ix, path.contains_points(im_ix)))
 
+    patch_points = list(compress(im_ix, path.contains_points(im_ix)))
     area = len(patch_points) * pixie_size * pixie_size
 
     return area
@@ -260,7 +303,7 @@ def mark_features(figa, axis2, colore, drawn_path):
     :param colore:
     :return:
     """
-    figa.canvas.manager.window.deiconify()
+    # figa.canvas.manager.window.deiconify()
     figa.canvas.manager.window.tkraise()
     axis2.set_title('Select features you are interested in. Press ENTER when done')
     x = np.asarray(fig.ginput(n=-1, timeout=0))
@@ -287,7 +330,7 @@ def select_area(file, figa, axa2, store, store_short, im_ix, pixsize=1, count=0)
     farba = [cm.Set1(x) for x in color_spread1]
     ph = []
     ph_count = 0
-
+    # figa.canvas.manager.window.deiconify()
     figa.canvas.manager.window.tkraise()
     figa.suptitle(file)
     axa2.set_title('Select corners of the area you are interested in. Press ENTER when done')
@@ -301,17 +344,15 @@ def select_area(file, figa, axa2, store, store_short, im_ix, pixsize=1, count=0)
         axa2.set_title('STORING data')
         p = mpath.Path(x)
         surface_area = measure_surface(p, im_ix, pixsize)
-        # TODO: realise short storage
-        store = store_area(store, file, x, surface_area, parallel=count)
+        store, store_short = store_area(store, store_short, file, x, surface_area, parallel=count)
         axa2.set_title('Do you wish to mark features inside area? Y or N')
         mark_yesno = input('Do you wish to mark features inside area? Y or N\n')
 
         if mark_yesno == 'y':
-            figa.canvas.manager.window.deiconify()
+            # figa.canvas.manager.window.deiconify()
             figa.canvas.manager.window.tkraise()
             features = mark_features(figa, axa2, colore=farba[count], drawn_path=p)
-            # TODO: realise short storage
-            store = store_features(store, file, features, surface_area, parallel=count)
+            store, store_short = store_features(store, store_short, file, features, surface_area, parallel=count)
             figa.canvas.manager.window.iconify()
         del x, p, surface_area
 
@@ -328,7 +369,7 @@ def measure_distance(file, figa, axis2, store, store_short, pix=1, count=0):
     axis2.set_title('Measure distance between two points')
     more = 'y'
     while more == 'y':
-        figa.canvas.manager.window.deiconify()
+        # figa.canvas.manager.window.deiconify()
         figa.canvas.manager.window.tkraise()
         xy = np.asarray(figa.ginput(n=2, timeout=0))
         dist = np.linalg.norm(xy[0] - xy[1])
@@ -336,8 +377,7 @@ def measure_distance(file, figa, axis2, store, store_short, pix=1, count=0):
         linija = axis2.plot(xy[:, 0], xy[:, 1], marker="+", markersize=8)
         axis2.text(np.mean(xy, axis=0)[0], np.mean(xy, axis=0)[1], str(np.round(dist, 0)) + r' $\mu$m',
                    color=linija[0].get_color())
-        #TODO: realise short storage
-        store = store_distance(store, file, xy, distance=dist, parallel=count)
+        store, store_short = store_distance(store, store_short, file, xy, distance=dist, parallel=count)
         count += 1
         figa.canvas.manager.window.iconify()
         axis2.set_title('One more? Y/N')
@@ -399,7 +439,7 @@ if __name__ == '__main__':
             ax2.set_title('Now what? Measure (A)rea, Measure (L)ength, (C)lose image')
             now_what = input('Now what? Measure (A)rea, Measure (L)ength, (C)lose image\n')
             if now_what == 'a':
-                fig.canvas.manager.window.deiconify()
+                # fig.canvas.manager.window.deiconify()
                 fig.canvas.manager.window.tkraise()
                 storage, storage_short, counter = select_area(title_fn, fig, ax2, storage, storage_short, im_index,
                                                               pix_size, counter)
@@ -414,7 +454,7 @@ if __name__ == '__main__':
                 if safe == 'y':
                     ax2.set_title('')
                     #TODO: save storage_short
-                    get_things_saved(fig, storage, filename, title_fn)
+                    get_things_saved(fig, storage, storage_short, filename, title_fn)
                 elif safe == 'n':
                     pass
                 stay = False
