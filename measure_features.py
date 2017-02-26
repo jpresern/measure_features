@@ -59,8 +59,8 @@ def get_things_saved(figa, store, store_short, file_name, suggested_name):
                                 initialdir=idir)
     window_save.destroy()
 
-    store.to_csv(save_fn + '.csv')
-    store_short.to_csv(save_fn + '_short.csv')
+    store.to_csv(save_fn + '.csv', index_label="index")
+    store_short.to_csv(save_fn + '_short.csv', index_label="index")
     """ resets instructions to nothing before save"""
     figa.savefig(save_fn + '.pdf')
 
@@ -334,7 +334,7 @@ def select_area(file, figa, axa2, store, store_short, im_ix, pixsize=1, count=0)
     figa.suptitle(file)
     axa2.set_title('Select corners of the area you are interested in. Press ENTER when done')
     x = np.asarray(fig.ginput(n=-1, timeout=0))
-    ph.append(axa2.add_patch(mpatch.Polygon(x, facecolor=farba[count], alpha=0.2)))
+    ph.append(axa2.add_patch(mpatch.Polygon(x, facecolor=farba[count % len(farba)], alpha=0.2)))
     figa.canvas.manager.window.iconify()
     axa2.set_title('Are you happy? Press Y to store data or N to drop them')
     happiness = input('Are you happy? Press Y to store data or N to drop them\n')
@@ -373,7 +373,7 @@ def measure_distance(file, figa, axis2, store, store_short, pix=1, count=0):
         dist = np.linalg.norm(xy[0] - xy[1])
         dist *= pix
         linija = axis2.plot(xy[:, 0], xy[:, 1], marker="+", markersize=8)
-        axis2.text(np.mean(xy, axis=0)[0], np.mean(xy, axis=0)[1], str(np.round(dist, 0)) + r' $\mu$m',
+        axis2.text(np.mean(xy, axis=0)[0], np.mean(xy, axis=0)[1], str(np.round(dist, 1)) + r' $\mu$m',
                    color=linija[0].get_color())
         store, store_short = store_distance(store, store_short, file, xy, distance=dist, parallel=count)
         count += 1
@@ -411,33 +411,34 @@ def redraw_stored_things(figa, axis2, store):
                                            facecolor=farba[count], alpha=0.2))
             if element_type.__contains__("points"):
                 points = iter_element.loc[(iter_element["type"] == "points"), ["x", "y"]].values
-                axis2.plot(points[0], points[1], linestyle="", marker="+", markersize=8, color=farba[count])
+                axis2.plot(points[:, 0], points[:, 1], linestyle="", marker="+", markersize=8, color=farba[count])
 
         elif element_type.__contains__("distance"):
             points = iter_element.loc[(iter_element["type"] == "distance"), ["x", "y"]].values
             dist = np.linalg.norm(points[0,:] - points[1,:])
-            axis2.plot(points[0], points[1], linestyle="", marker="+", markersize=8, color=farba[count])
-            axis2.text(np.mean(points, axis=0)[0], np.mean(points, axis=0)[1], str(np.round(dist, 0)) + r' $\mu$m',
+            axis2.plot(points[:, 0], points[:, 1], marker="+", markersize=8, color=farba[count])
+            axis2.text(np.mean(points, axis=0)[0], np.mean(points, axis=0)[1], str(np.round(dist, 1)) + r' $\mu$m',
                        color=farba[count])
         count +=1
     pass
 
 
 def load_measurements(file, file2):
+
     """ load data """
-    store = pd.read_csv(file)
-    store_short = pd.read_csv(file2)
+
+    store = pd.read_csv(file, usecols=['datetime', 'sample', 'parallel', 'type', 'element', 'x', 'y', 'quality',
+                                         'quantity'])
+    store_short = pd.read_csv(file2, usecols=['datetime', 'sample', 'parallel', 'quality', 'quantity'])
 
     """ construct file names """
     impath = file.rsplit('/', maxsplit=1)[0]
     sample_fn = store["sample"].values[0]
     im_fn = impath + "/" + sample_fn
     meta_fn = impath + "/" + sample_fn.rsplit(".")[0]
-
+    """ draw """
     figa, axis, im_ix, pix = image_display(im_fn, meta_fn)
-    # TODO: check if everything is loaded correctly
-    # TODO: draw measured things on the image
-
+    """ draw measured features """
     redraw_stored_things(figa, axis, store)
 
     return store, store_short, figa, axis, pix, im_ix
@@ -492,8 +493,7 @@ if __name__ == '__main__':
                 filename2 = filename
 
             storage, storage_short, fig, ax2, pix_size, im_index = load_measurements(filename1, filename2)
-            #TODO: implement loading of existing data
-            pass
+            counter = storage["parallel"].max() + 1
         else:
 
             """ load image, load meta data, display image and calibrate """
@@ -502,11 +502,11 @@ if __name__ == '__main__':
             """ prepare empty storage """
             storage = prepare_storage()
             storage_short = prepare_short_storage()
+            counter = 0
 
         """ action """
         """ main loop """
         stay = True
-        counter = 0
         while stay:
             fig.canvas.manager.window.iconify()
             ax2.set_title('Now what? Measure (A)rea, Measure (L)ength, (C)lose image')
@@ -526,7 +526,6 @@ if __name__ == '__main__':
                 safe = input('Save measurements? Y/N\n')
                 if safe == 'y':
                     ax2.set_title('')
-                    #TODO: save storage_short
                     get_things_saved(fig, storage, storage_short, filename, title_fn)
                 elif safe == 'n':
                     pass
