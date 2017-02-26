@@ -357,7 +357,6 @@ def select_area(file, figa, axa2, store, store_short, im_ix, pixsize=1, count=0)
 
     elif happiness == 'n':
         axa2.set_title('DELETING data')
-        embed()
         ph[ph_count].remove()
         del x
 
