@@ -92,6 +92,22 @@ def prepare_storage():
     return df
 
 
+def prepare_short_storage():
+    """
+    sets up empty dataframe, containing following columns:
+        sample      - name of photo
+        parallel    - iteration on the same sample
+        quality     - quality measured (surface if area, density of points inside the area if points, distance if distance)
+        quantity    - measured value for quality
+    :return df: pandas dataframe, ready
+    """
+
+    columns = ['datetime', 'sample', 'parallel', 'quality', 'quantity']
+    df = pd.DataFrame(columns=columns)
+
+    return df
+
+
 def store_area(df, file, xy_pairs, area, parallel=1):
     columns = ['datetime', 'sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
     df_empty = pd.DataFrame(columns=columns)
@@ -252,13 +268,14 @@ def mark_features(figa, axis2, colore, drawn_path):
     return x
 
 
-def select_area(file, figa, axa2, store, im_ix, pixsize=1, count=0):
+def select_area(file, figa, axa2, store, store_short, im_ix, pixsize=1, count=0):
     """
     Select and measures areas while true
     :param file:
     :param figa:
     :param axa2:
     :param store:
+    :param store_short:
     :param im_ix:
     :param pixsize:
     :param count:
@@ -281,6 +298,7 @@ def select_area(file, figa, axa2, store, im_ix, pixsize=1, count=0):
         axa2.set_title('STORING data')
         p = mpath.Path(x)
         surface_area = measure_surface(p, im_ix, pixsize)
+        # TODO: realise short storage
         store = store_area(store, file, x, surface_area, parallel=count)
         axa2.set_title('Do you wish to mark features inside area? Y or N')
         mark_yesno = input('Do you wish to mark features inside area? Y or N\n')
@@ -288,6 +306,7 @@ def select_area(file, figa, axa2, store, im_ix, pixsize=1, count=0):
         if mark_yesno == 'y':
             fig.canvas.manager.window.deiconify()
             features = mark_features(figa, axa2, colore=farba[count], drawn_path=p)
+            # TODO: realise short storage
             store = store_features(store, file, features, surface_area, parallel=count)
             fig.canvas.manager.window.iconify()
         del x, p, surface_area
@@ -297,10 +316,10 @@ def select_area(file, figa, axa2, store, im_ix, pixsize=1, count=0):
         ph[count].remove()
         del x
 
-    return store, count
+    return store, store_short, count
 
 
-def measure_distance(file, figa, axis2, store, pix=1, count=0):
+def measure_distance(file, figa, axis2, store, store_short, pix=1, count=0):
     axis2.set_title('Measure distance between two points')
     more = 'y'
     while more == 'y':
@@ -312,13 +331,14 @@ def measure_distance(file, figa, axis2, store, pix=1, count=0):
         linija = axis2.plot(xy[:, 0], xy[:, 1], marker="+", markersize=8)
         axis2.text(np.mean(xy, axis=0)[0], np.mean(xy, axis=0)[1], str(np.round(dist, 0)) + r' $\mu$m',
                    color=linija[0].get_color())
+        #TODO: realise short storage
         store = store_distance(store, file, xy, distance=dist, parallel=count)
         count += 1
         figa.canvas.manager.window.iconify()
         axis2.set_title('One more? Y/N')
         more = input('One more? Y/N\n')
     axis2.set_title('')
-    return store, count
+    return store, store_short, count
 
 
 if __name__ == '__main__':
@@ -363,6 +383,7 @@ if __name__ == '__main__':
 
         """ prepare empty storage """
         storage = prepare_storage()
+        storage_short = prepare_short_storage()
 
         """ action """
         """ main loop """
@@ -374,15 +395,18 @@ if __name__ == '__main__':
             now_what = input('Now what? Measure (A)rea, Measure (L)ength, (C)lose image\n')
             if now_what == 'a':
                 fig.canvas.manager.window.deiconify()
-                storage, counter = select_area(title_fn, fig, ax2, storage, im_index, pix_size, counter)
+                storage, storage_short, counter = select_area(title_fn, fig, ax2, storage, storage_short, im_index,
+                                                              pix_size, counter)
             elif now_what == 'l':
                 fig.canvas.manager.window.deiconify()
-                storage, counter = measure_distance(title_fn, fig, ax2, storage, pix_size, counter)
+                storage, storage_short, counter = measure_distance(title_fn, fig, ax2, storage, storage_short, pix_size,
+                                                                   counter)
             elif now_what == 'c':
                 ax2.set_title('Save measurements? Y/N')
                 safe = input('Save measurements? Y/N\n')
                 if safe == 'y':
                     ax2.set_title('')
+                    #TODO: save storage_short
                     get_things_saved(fig, storage, filename, title_fn)
                 elif safe == 'n':
                     pass
