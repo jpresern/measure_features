@@ -385,21 +385,63 @@ def measure_distance(file, figa, axis2, store, store_short, pix=1, count=0):
     return store, store_short, count
 
 
+def redraw_stored_things(figa, axis2, store):
+
+    """ draw selecteda areas with marked features
+        sample      - name of photo
+        parallel    - iteration on the same sample
+        type        - what are we measuring (area, points, distance)
+        x, y        - coordinates
+        quality     - quality measured (surface if area, density of points inside the area if points, distance if distance)
+        quantity    - measured value for quality
+    """
+    color_spread1 = np.linspace(0.05, 0.95, 10)
+    farba = [cm.Set1(x) for x in color_spread1]
+    count = 0
+
+
+    elements = store["parallel"].unique()
+
+    for element in elements:
+
+        iter_element = store.loc[store["parallel"] == element]
+        element_type = iter_element["type"].unique().tolist()
+
+        if element_type.__contains__("area"):
+            axis2.add_patch(mpatch.Polygon(iter_element.loc[(iter_element["type"] == "area"), ["x", "y"]].values,
+                                           facecolor=farba[count], alpha=0.2))
+            if element_type.__contains__("points"):
+                points = iter_element.loc[(iter_element["type"] == "points"), ["x", "y"]].values
+                axis2.plot(points[0], points[1], linestyle="", marker="+", markersize=8, color=farba[count])
+
+        elif element_type.__contains__("distance"):
+            points = iter_element.loc[(iter_element["type"] == "distance"), ["x", "y"]].values
+            dist = np.linalg.norm(points[0,:] - points[1,:])
+            axis2.plot(points[0], points[1], linestyle="", marker="+", markersize=8, color=farba[count])
+            axis2.text(np.mean(points, axis=0)[0], np.mean(points, axis=0)[1], str(np.round(dist, 0)) + r' $\mu$m',
+                       color=farba[count])
+        count +=1
+    pass
+
+
 def load_measurements(file, file2):
     """ load data """
     store = pd.read_csv(file)
     store_short = pd.read_csv(file2)
 
-    """ construct file names"""
+    """ construct file names """
     impath = file.rsplit('/', maxsplit=1)[0]
     sample_fn = store["sample"].values[0]
     im_fn = impath + "/" + sample_fn
     meta_fn = impath + "/" + sample_fn.rsplit(".")[0]
 
-    fig, axis, im_index, pix_size = image_display(im_fn, meta_fn)
+    figa, axis, im_ix, pix = image_display(im_fn, meta_fn)
     # TODO: check if everything is loaded correctly
     # TODO: draw measured things on the image
-    return store, store_short, fig, axis, pix_size
+
+    redraw_stored_things(figa, axis, store)
+
+    return store, store_short, figa, axis, pix, im_ix
 
 
 if __name__ == '__main__':
@@ -450,7 +492,7 @@ if __name__ == '__main__':
                 filename1 = filename.rsplit('_short.', maxsplit=1)[0] + filename.rsplit('_short', maxsplit=1)[1]
                 filename2 = filename
 
-            storage, storage_short, fig, ax2, pix_size = load_measurements(filename1, filename2)
+            storage, storage_short, fig, ax2, pix_size, im_index = load_measurements(filename1, filename2)
             #TODO: implement loading of existing data
             pass
         else:
