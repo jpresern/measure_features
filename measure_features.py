@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 import tkinter as tk
 import matplotlib
 
@@ -35,7 +34,7 @@ def image_display(image_fn, meta_fn):
     figure.show()
 
     """ get experimental metadata"""
-    mag, bar, bar_pixels, zeitgeist, datum = read_in_settings(meta_fn)
+    mag, bar, bar_pixels, zeitgeist, datum = read_in_settings(meta_fn, fig=figure, ax2=axis2)
     pix_size = pixel_size(bar, bar_pixels)
 
     """ cosmetics """
@@ -217,7 +216,7 @@ def pixel_size(bar_size, bar_size_pixels):
     return pix_size
 
 
-def read_in_settings(file_name):
+def read_in_settings(file_name, fig, ax2):
     """
     Read experimental settings from the .txt file, produced by electron microscope
     :param fn: file name
@@ -386,6 +385,23 @@ def measure_distance(file, figa, axis2, store, store_short, pix=1, count=0):
     return store, store_short, count
 
 
+def load_measurements(file, file2):
+    """ load data """
+    store = pd.read_csv(file)
+    store_short = pd.read_csv(file2)
+
+    """ construct file names"""
+    impath = file.rsplit('/', maxsplit=1)[0]
+    sample_fn = store["sample"].values[0]
+    im_fn = impath + "/" + sample_fn
+    meta_fn = impath + "/" + sample_fn.rsplit(".")[0]
+
+    fig, axis, im_index, pix_size = image_display(im_fn, meta_fn)
+    # TODO: check if everything is loaded correctly
+    # TODO: draw measured things on the image
+    return store, store_short, fig, axis, pix_size
+
+
 if __name__ == '__main__':
 
     """ declare myself """
@@ -423,12 +439,28 @@ if __name__ == '__main__':
         ext = '.' + ext
         title_fn = filename.rsplit('/', maxsplit=1)[-1]
 
-        """ load image, load meta data, display image and calibrate """
-        fig, ax2, im_index, pix_size = image_display(filename, fn)
+        """ load existing .csv file """
+        if ext == '.csv':
 
-        """ prepare empty storage """
-        storage = prepare_storage()
-        storage_short = prepare_short_storage()
+            """ construct file names for storage and storage_short """
+            if "_short" not in fn:
+                filename1 = filename
+                filename2 = fn + '_short' + ext
+            else:
+                filename1 = filename.rsplit('_short.', maxsplit=1)[0] + filename.rsplit('_short', maxsplit=1)[1]
+                filename2 = filename
+
+            storage, storage_short, fig, ax2, pix_size = load_measurements(filename1, filename2)
+            #TODO: implement loading of existing data
+            pass
+        else:
+
+            """ load image, load meta data, display image and calibrate """
+            fig, ax2, im_index, pix_size = image_display(filename, fn)
+
+            """ prepare empty storage """
+            storage = prepare_storage()
+            storage_short = prepare_short_storage()
 
         """ action """
         """ main loop """
