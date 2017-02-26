@@ -1,8 +1,7 @@
 # measure_features
 
-(c) 2016 - 2017 Barbara Piskur(1), Janez Presern(2)
-(1) Slovenian Forestry Institute
-(2) Agricultural Institute of Slovenia
+(c) 2016 - 2017 Barbara Piskur(Slovenian Forestry Insitute) and 
+Janez Presern(Agricultural Institute of Slovenia)
 
 This is simple Python3 tool to measure (electron) micrographs. The 
 development was initiated after realisation that simple and simply 
@@ -19,7 +18,8 @@ Requirements: Python >= 3.4 or higher, Matplotlib >= 2.0, Numpy >=1.11,
 Pandas >=19.2.
 
 
-1) **Open file**: Script opens image file through file dialog or startup
+1) **Open file**: 
+Script opens image file through file dialog or startup
 parameters. If there is accompanying .txt file containing 
 experimental metadata (at the moment only JEOL micrographs are 
 supported), it tries to fetch the pixel size and scale bar 
@@ -29,8 +29,8 @@ Startup parameters:
 --f ... opens file specified. Example:
 ./measure_features.py --f ./samples/Vzorec_120_005.tif
 
-2) **Measuring**: script offers measuring of two qualities, accessible via 
-console interaction.
+2) **Measuring**: 
+script offers measuring of two qualities, accessible via console interaction.
 
 a) Area measurement: Click on the edges of the area you would like to 
 measure. Accept the measurements. Inside of the "Area measurement" is a
@@ -40,8 +40,9 @@ Density is computed.
 b) Length measurement: Click two points between which you would like to 
 measure distance.
 
-3) **Saving results**: A file dialog opens and prompts for the file name 
-and location. Saving produces two files with the same name:
+3) **Saving results**: 
+A file dialog opens and prompts for the file name and location. 
+Saving produces two files with the same name:
     1) .csv, which contains results, measurements and all other info
      required for restoring the measuring session (not implemented yet)
     2) .pdf, which contains image with measured regions, elements drawn
@@ -52,4 +53,4 @@ Warning: script overwrites existing files with the same name **without**
 prompt.
 
 4) **Acknowledgments**: the development was supported by ARRS Z4-5518 
-(to BP) []() and ARRS P4-0133 (JP).
+(to BP) and ARRS P4-0133 (JP).
