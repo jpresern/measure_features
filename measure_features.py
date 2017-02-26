@@ -330,7 +330,7 @@ if __name__ == '__main__':
     print("|                                                           |")
     print("|    by: Barbara Piskur and Janez Presern (c) 2016, 2017    |")
     print("|                                                           |")
-    print("|    use \"--help\" for help                                  |")
+    print("|    read README.md for help and instructions               |")
     print("=============================================================")
     args = sys.argv
     to_be_parsed = args[1:]

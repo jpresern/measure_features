@@ -14,8 +14,13 @@ thorns on the selected surface can be different from species to species.
 The tools assists with measuring and provides .csv with measurements and
 .pdf with picture where the estimations were taken from.
 
-Requirements: Python >= 3.4 or higher, Matplotlib >= 2.0, Numpy >=1.11, 
-Pandas >=19.2.
+Dependencies: 
+-------------
+* Python >= 3.4 
+* Python packages
+    * Matplotlib >= 2.0
+    * Numpy >=1.11
+    * Pandas >=19.2.
 
 
 1) **Open file**: 
@@ -32,20 +37,20 @@ Startup parameters:
 2) **Measuring**: 
 script offers measuring of two qualities, accessible via console interaction.
 
-a) Area measurement: Click on the edges of the area you would like to 
+* Area measurement: Click on the edges of the area you would like to 
 measure. Accept the measurements. Inside of the "Area measurement" is a
 "feature counter", allowing user to count elements inside the area. 
 Density is computed.
 
-b) Length measurement: Click two points between which you would like to 
+* Length measurement: Click two points between which you would like to 
 measure distance.
 
 3) **Saving results**: 
 A file dialog opens and prompts for the file name and location. 
 Saving produces two files with the same name:
-    1) .csv, which contains results, measurements and all other info
+    * .csv, which contains results, measurements and all other info
      required for restoring the measuring session (not implemented yet)
-    2) .pdf, which contains image with measured regions, elements drawn
+    * .pdf, which contains image with measured regions, elements drawn
      in. .pdf is layered and can be further edit in varios vector 
      manipulating software.
 
