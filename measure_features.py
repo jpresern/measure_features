@@ -3,6 +3,7 @@
 
 import tkinter as tk
 import matplotlib
+
 matplotlib.use("TkAgg")
 
 import sys
@@ -18,13 +19,13 @@ from itertools import product, compress
 from datetime import datetime
 from optparse import OptionParser
 from tkinter.filedialog import askopenfilename, asksaveasfilename
-from IPython import embed
+
+# from IPython import embed
 
 __author__ = "jpresern, bpiskur"
 
 
 def image_display(image_fn, meta_fn):
-
     """ read in the image file """
     img = mimg.imread(image_fn)
 
@@ -64,7 +65,6 @@ def get_things_saved(figa, store, file_name, suggested_name):
 
 
 def get_things_opened():
-
     idir = './samples'
     window_open = tk.Tk()
     window_open.withdraw()
@@ -86,14 +86,14 @@ def prepare_storage():
     :return df: pandas dataframe, ready
     """
 
-    columns = ['datetime','sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
+    columns = ['datetime', 'sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
     df = pd.DataFrame(columns=columns)
 
     return df
 
 
 def store_area(df, file, xy_pairs, area, parallel=1):
-    columns = ['datetime','sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
+    columns = ['datetime', 'sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
     df_empty = pd.DataFrame(columns=columns)
     for i, v in enumerate(xy_pairs):
         df_empty.loc[i, :] = datetime.now(), file, parallel, 'area', 'corner', v[0], v[1], 'surface', area
@@ -101,16 +101,16 @@ def store_area(df, file, xy_pairs, area, parallel=1):
 
 
 def store_features(df, file, xy_pairs, area, parallel=1):
-    columns = ['datetime','sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
+    columns = ['datetime', 'sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
     df_empty = pd.DataFrame(columns=columns)
-    density = xy_pairs.shape[0]/area
+    density = xy_pairs.shape[0] / area
     for i, v in enumerate(xy_pairs):
         df_empty.loc[i, :] = datetime.now(), file, parallel, 'points', 'points', v[0], v[1], 'density', density
     return pd.concat([df, df_empty], ignore_index=True)
 
 
 def store_distance(df, file, xy_pairs, distance, parallel=1):
-    columns = ['datetime','sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
+    columns = ['datetime', 'sample', 'parallel', 'type', 'element', 'x', 'y', 'quality', 'quantity']
     df_empty = pd.DataFrame(columns=columns)
     df_empty.loc[0, :] = datetime.now(), file, parallel, 'distance', 'start_point', xy_pairs[0, 0], xy_pairs[0, 1], \
                          'length', distance
@@ -122,7 +122,7 @@ def store_distance(df, file, xy_pairs, distance, parallel=1):
 def drawing_board():
     """ create image with axes """
 
-    #TODO: separate axis for image and for labeling. This will allow layering of .pdf, hopefully
+    # TODO: separate axis for image and for labeling. This will allow layering of .pdf, hopefully
 
     figure = plt.figure(figsize=(8, 7.5))
     axis2 = figure.add_axes([0.1, 0.1, 0.85, 0.85])
@@ -134,7 +134,6 @@ def drawing_board():
 
 
 def calibrate(figa, ax):
-
     ax.set_title('Click at the beginning and at the end of scale bar')
     x = figa.ginput(n=2)
     x1 = x[0][0]
@@ -144,23 +143,21 @@ def calibrate(figa, ax):
 
     size = input('Type the length of the scale bar in micrometers')
 
-    pixel_size = dx/np.float(size)
+    pixel_size = dx / np.float(size)
     return dx, size, pixel_size
 
 
 def pixel_size(bar_size, bar_size_pixels):
-
     """
     computes size of single pixel in the image (in micrometers)
     """
 
-    pix_size = bar_size/bar_size_pixels
+    pix_size = bar_size / bar_size_pixels
 
     return pix_size
 
 
 def read_in_settings(file_name):
-
     """
     Read experimental settings from the .txt file, produced by electron microscope
     :param fn: file name
@@ -206,7 +203,6 @@ def read_in_settings(file_name):
         pass
 
     if (barsize == None) | (barsize_pixels == None):
-
         print('There are no calibration data in log file. Starting calibration')
         ax2.set_title('There are no calibration data in log file. Starting calibration')
         barsize, barsize_pixels, pix_size = calibrate(fig, ax2)
@@ -216,7 +212,6 @@ def read_in_settings(file_name):
 
 
 def create_coord_pairs(image_shape):
-
     """
     converts image size into list of tuples of coordinate pairs
     :param image_shape: shape of np.array containing image
@@ -231,7 +226,6 @@ def create_coord_pairs(image_shape):
 
 
 def measure_surface(path, im_ix, pixie_size):
-
     patch_points = list(compress(im_ix, path.contains_points(im_ix)))
 
     area = len(patch_points) * pixie_size * pixie_size
@@ -240,7 +234,6 @@ def measure_surface(path, im_ix, pixie_size):
 
 
 def mark_features(figa, axis2, colore, drawn_path):
-
     """
     Label features within selected area. Removes those outside the area.
     :param filename:
@@ -259,8 +252,7 @@ def mark_features(figa, axis2, colore, drawn_path):
     return x
 
 
-def select_area(file, figa, axa2, store, im_ix, pixsize=1, counter=0):
-
+def select_area(file, figa, axa2, store, im_ix, pixsize=1, count=0):
     """
     Select and measures areas while true
     :param file:
@@ -269,20 +261,18 @@ def select_area(file, figa, axa2, store, im_ix, pixsize=1, counter=0):
     :param store:
     :param im_ix:
     :param pixsize:
-    :param counter:
+    :param count:
     :return:
     """
     color_spread1 = np.linspace(0.05, 0.95, 10)
     farba = [cm.Set1(x) for x in color_spread1]
     ph = []
 
-    # embed()
-    # fig.canvas.manager.window.focus()
     figa.canvas.manager.window.tkraise()
     figa.suptitle(file)
     axa2.set_title('Select corners of the area you are interested in. Press ENTER when done')
     x = np.asarray(fig.ginput(n=-1, timeout=0))
-    ph.append(axa2.add_patch(mpatch.Polygon(x, facecolor=farba[counter], alpha=0.2)))
+    ph.append(axa2.add_patch(mpatch.Polygon(x, facecolor=farba[count], alpha=0.2)))
     figa.canvas.manager.window.iconify()
     axa2.set_title('Are you happy? Press Y to store data or N to drop them')
     happiness = input('Are you happy? Press Y to store data or N to drop them\n')
@@ -291,27 +281,26 @@ def select_area(file, figa, axa2, store, im_ix, pixsize=1, counter=0):
         axa2.set_title('STORING data')
         p = mpath.Path(x)
         surface_area = measure_surface(p, im_ix, pixsize)
-        store = store_area(store, file, x, surface_area, parallel=counter)
+        store = store_area(store, file, x, surface_area, parallel=count)
         axa2.set_title('Do you wish to mark features inside area? Y or N')
         mark_yesno = input('Do you wish to mark features inside area? Y or N\n')
 
         if mark_yesno == 'y':
             fig.canvas.manager.window.deiconify()
-            features = mark_features(figa, axa2, col=farba[counter], path=p)
-            store = store_features(store, file, features, surface_area, parallel=counter)
+            features = mark_features(figa, axa2, colore=farba[count], drawn_path=p)
+            store = store_features(store, file, features, surface_area, parallel=count)
             fig.canvas.manager.window.iconify()
         del x, p, surface_area
 
     elif happiness == 'n':
         axa2.set_title('DELETING data')
-        ph[counter].remove()
+        ph[count].remove()
         del x
 
-    return store, counter
+    return store, count
 
 
 def measure_distance(file, figa, axis2, store, pix=1, count=0):
-    # todo: add micrometer sign
     axis2.set_title('Measure distance between two points')
     more = 'y'
     while more == 'y':
@@ -321,8 +310,8 @@ def measure_distance(file, figa, axis2, store, pix=1, count=0):
         dist = np.linalg.norm(xy[0] - xy[1])
         dist *= pix
         linija = axis2.plot(xy[:, 0], xy[:, 1], marker="+", markersize=8)
-        axis2.text(np.mean(xy, axis=0)[0], np.mean(xy, axis = 0)[1], str(np.round(dist, 0)) + r' $\mu$m',
-                 color=linija[0].get_color())
+        axis2.text(np.mean(xy, axis=0)[0], np.mean(xy, axis=0)[1], str(np.round(dist, 0)) + r' $\mu$m',
+                   color=linija[0].get_color())
         store = store_distance(store, file, xy, distance=dist, parallel=count)
         count += 1
         figa.canvas.manager.window.iconify()
@@ -335,6 +324,7 @@ def measure_distance(file, figa, axis2, store, pix=1, count=0):
 if __name__ == '__main__':
 
     """ declare myself """
+
     print("=============================================================")
     print("|    Measure features - Simple tool for simple jobs v.1.0   |")
     print("|                                                           |")
