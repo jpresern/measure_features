@@ -20,9 +20,9 @@ from datetime import datetime
 from optparse import OptionParser
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 
-# from IPython import embed
+from IPython import embed
 
-__author__ = "jpresern, bpiskur"
+__author__ = "bpiskur, jpresern"
 
 
 def image_display(image_fn, meta_fn):
@@ -38,6 +38,7 @@ def image_display(image_fn, meta_fn):
     mag, bar, bar_pixels, zeitgeist, datum = read_in_settings(meta_fn)
     pix_size = pixel_size(bar, bar_pixels)
 
+    """ cosmetics """
     axis2.set_xticklabels(np.round(axis2.get_xticks() * pix_size, 2))
     axis2.set_yticklabels(np.round(axis2.get_yticks() * pix_size, 2))
     axis2.set_xlabel(r'width [$\mu$m]')
@@ -259,6 +260,7 @@ def mark_features(figa, axis2, colore, drawn_path):
     :param colore:
     :return:
     """
+    figa.canvas.manager.window.deiconify()
     figa.canvas.manager.window.tkraise()
     axis2.set_title('Select features you are interested in. Press ENTER when done')
     x = np.asarray(fig.ginput(n=-1, timeout=0))
@@ -284,6 +286,7 @@ def select_area(file, figa, axa2, store, store_short, im_ix, pixsize=1, count=0)
     color_spread1 = np.linspace(0.05, 0.95, 10)
     farba = [cm.Set1(x) for x in color_spread1]
     ph = []
+    ph_count = 0
 
     figa.canvas.manager.window.tkraise()
     figa.suptitle(file)
@@ -304,16 +307,18 @@ def select_area(file, figa, axa2, store, store_short, im_ix, pixsize=1, count=0)
         mark_yesno = input('Do you wish to mark features inside area? Y or N\n')
 
         if mark_yesno == 'y':
-            fig.canvas.manager.window.deiconify()
+            figa.canvas.manager.window.deiconify()
+            figa.canvas.manager.window.tkraise()
             features = mark_features(figa, axa2, colore=farba[count], drawn_path=p)
             # TODO: realise short storage
             store = store_features(store, file, features, surface_area, parallel=count)
-            fig.canvas.manager.window.iconify()
+            figa.canvas.manager.window.iconify()
         del x, p, surface_area
 
     elif happiness == 'n':
         axa2.set_title('DELETING data')
-        ph[count].remove()
+        embed()
+        ph[ph_count].remove()
         del x
 
     return store, store_short, count
@@ -323,8 +328,8 @@ def measure_distance(file, figa, axis2, store, store_short, pix=1, count=0):
     axis2.set_title('Measure distance between two points')
     more = 'y'
     while more == 'y':
-        # fig.canvas.manager.window.tkraise()
         figa.canvas.manager.window.deiconify()
+        figa.canvas.manager.window.tkraise()
         xy = np.asarray(figa.ginput(n=2, timeout=0))
         dist = np.linalg.norm(xy[0] - xy[1])
         dist *= pix
@@ -395,10 +400,12 @@ if __name__ == '__main__':
             now_what = input('Now what? Measure (A)rea, Measure (L)ength, (C)lose image\n')
             if now_what == 'a':
                 fig.canvas.manager.window.deiconify()
+                fig.canvas.manager.window.tkraise()
                 storage, storage_short, counter = select_area(title_fn, fig, ax2, storage, storage_short, im_index,
                                                               pix_size, counter)
             elif now_what == 'l':
                 fig.canvas.manager.window.deiconify()
+                fig.canvas.manager.window.tkraise()
                 storage, storage_short, counter = measure_distance(title_fn, fig, ax2, storage, storage_short, pix_size,
                                                                    counter)
             elif now_what == 'c':

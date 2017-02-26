@@ -39,12 +39,13 @@ Measuring:
 script offers measuring of two qualities, accessible via console interaction.
 
 * Area measurement: Click on the edges of the area you would like to 
-measure. Accept the measurements. Inside of the "Area measurement" is a
-"feature counter", allowing user to count elements inside the area. 
-Density is computed.
+measure. Accept the measurements by pressing ENTER or middle mouse button.
+After area selection, there is possibility to count features (and density)
+inside the selected area. Density is computed and stored automatically.
 
 * Length measurement: Click two points between which you would like to 
-measure distance.
+measure distance. After completition, user will be asked whether he/she wishes
+to continue with length measurements or quit length measurements.
 
 Saving results: 
 ---------------
