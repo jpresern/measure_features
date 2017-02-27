@@ -228,36 +228,67 @@ def read_in_settings(file_name, fig, ax2):
     # global date, date
     file_name += '.txt'
     try:
-        file = open(file_name, 'r')
+        try:
+            file = open(file_name, mode='r', encoding="utf8")
+            for line in file.readlines():
+                if re.search('CM_MAG', line):
+                    magnification = line.split(' ')[-1]
+                    magnification = np.float(magnification)
+                    print('Magnification: ', magnification)
+                else:
+                    magnification = 'data not available'
+                if re.search('CM_TIME', line):
+                    zeit = line.split(' ')[-1]
+                    # zeit = np.float(zeit)
+                    print('Time of scan: ', zeit)
+                else:
+                    zeit = 'data not available'
+                if re.search('CM_DATE', line):
+                    date = line.split(' ')[-1]
+                    # date = np.float(date)
+                    print('Date of scan: ', date)
+                else:
+                    date = 'data not available'
+                if re.search('SM_MICRON_BAR', line):
+                    barsize_pixels = line.split(' ')[-1]
+                    barsize_pixels = np.float(barsize_pixels)
+                    print('Length of scale bar in pixels: ', barsize_pixels)
+                if re.search('SM_MICRON_MARKER', line):
+                    barsize = line.split(' ')[-1]
+                    if re.search('um', barsize):
+                        barsize = np.float(barsize.split('u')[0])
+                        print('Length of scale bar in micrometers:\n', barsize)
+        except:
+            file = open(file_name, mode='r', encoding="cp1252")
+            for line in file.readlines():
+                if re.search('CM_MAG', line):
+                    magnification = line.split(' ')[-1]
+                    magnification = np.float(magnification)
+                    print('Magnification: ', magnification)
+                else:
+                    magnification = 'data not available'
+                if re.search('CM_TIME', line):
+                    zeit = line.split(' ')[-1]
+                    # zeit = np.float(zeit)
+                    print('Time of scan: ', zeit)
+                else:
+                    zeit = 'data not available'
+                if re.search('CM_DATE', line):
+                    date = line.split(' ')[-1]
+                    # date = np.float(date)
+                    print('Date of scan: ', date)
+                else:
+                    date = 'data not available'
+                if re.search('SM_MICRON_BAR', line):
+                    barsize_pixels = line.split(' ')[-1]
+                    barsize_pixels = np.float(barsize_pixels)
+                    print('Length of scale bar in pixels: ', barsize_pixels)
+                if re.search('SM_MICRON_MARKER', line):
+                    barsize = line.split(' ')[-1]
+                    if re.search('um', barsize):
+                        barsize = np.float(barsize.split('u')[0])
+                        print('Length of scale bar in micrometers:\n', barsize)
 
-        for line in file.readlines():
-            if re.search('CM_MAG', line):
-                magnification = line.split(' ')[-1]
-                magnification = np.float(magnification)
-                print('Magnification: ', magnification)
-            else:
-                magnification = 'data not available'
-            if re.search('CM_TIME', line):
-                zeit = line.split(' ')[-1]
-                # zeit = np.float(zeit)
-                print('Time of scan: ', zeit)
-            else:
-                zeit = 'data not available'
-            if re.search('CM_DATE', line):
-                date = line.split(' ')[-1]
-                # date = np.float(date)
-                print('Date of scan: ', date)
-            else:
-                date = 'data not available'
-            if re.search('SM_MICRON_BAR', line):
-                barsize_pixels = line.split(' ')[-1]
-                barsize_pixels = np.float(barsize_pixels)
-                print('Length of scale bar in pixels: ', barsize_pixels)
-            if re.search('SM_MICRON_MARKER', line):
-                barsize = line.split(' ')[-1]
-                if re.search('um', barsize):
-                    barsize = np.float(barsize.split('u')[0])
-                    print('Length of scale bar in micrometers:\n', barsize)
     except:
         pass
 
