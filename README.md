@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.322674.svg)](https://doi.org/10.5281/zenodo.322674)
+
 # Measure Features
 
 (c) 2016 - 2017 Barbara Piskur (Slovenian Forestry Insitute) and 
@@ -73,4 +75,4 @@ prompt.
 Acknowledgments 
 ---------------
 Development was supported by ARRS Z4-5518 
-(to BP) and ARRS P4-0133 (JP).
+(BP) and ARRS P4-0133 (JP).
