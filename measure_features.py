@@ -305,7 +305,7 @@ def mark_features(figa, axis2, colore, drawn_path):
     figa.canvas.manager.window.deiconify()
     figa.canvas.manager.window.tkraise()
     axis2.set_title('Select features you are interested in. Press ENTER when done')
-    x = np.asarray(fig.ginput(n=-1, timeout=0))
+    x = np.asarray(fig.ginput(n=-1, timeout=0, mouse_stop=2, mouse_pop=3))
     within_patch = list(compress(x, drawn_path.contains_points(x)))
     for i in range(len(within_patch)):
         axis2.plot(within_patch[i][0], within_patch[i][1], linestyle='', marker='+', color=colore, markersize=8)
@@ -333,7 +333,7 @@ def select_area(file, figa, axa2, store, store_short, im_ix, pixsize=1, count=0)
     figa.canvas.manager.window.tkraise()
     figa.suptitle(file)
     axa2.set_title('Select corners of the area you are interested in. Press ENTER when done')
-    x = np.asarray(fig.ginput(n=-1, timeout=0))
+    x = np.asarray(fig.ginput(n=-1, timeout=0, mouse_stop=2, mouse_pop=3))
     ph.append(axa2.add_patch(mpatch.Polygon(x, facecolor=farba[count % len(farba)], alpha=0.2)))
     figa.canvas.manager.window.iconify()
     axa2.set_title('Are you happy? Press Y to store data or N to drop them')
@@ -369,7 +369,7 @@ def measure_distance(file, figa, axis2, store, store_short, pix=1, count=0):
     while more == 'y':
         figa.canvas.manager.window.deiconify()
         figa.canvas.manager.window.tkraise()
-        xy = np.asarray(figa.ginput(n=2, timeout=0))
+        xy = np.asarray(figa.ginput(n=2, timeout=0, mouse_stop=2, mouse_pop=3))
         dist = np.linalg.norm(xy[0] - xy[1])
         dist *= pix
         linija = axis2.plot(xy[:, 0], xy[:, 1], marker="+", markersize=8)
