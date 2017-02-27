@@ -384,7 +384,7 @@ def measure_distance(file, figa, axis2, store, store_short, pix=1, count=0):
     return store, store_short, count
 
 
-def redraw_stored_things(figa, axis2, store):
+def redraw_stored_things(axis2, store):
 
     """ draw selecteda areas with marked features
         sample      - name of photo
@@ -439,7 +439,7 @@ def load_measurements(file, file2):
     """ draw """
     figa, axis, im_ix, pix = image_display(im_fn, meta_fn)
     """ draw measured features """
-    redraw_stored_things(figa, axis, store)
+    redraw_stored_things(axis, store)
 
     return store, store_short, figa, axis, pix, im_ix
 
