@@ -48,11 +48,14 @@ Script offers measuring of two qualities, accessible via console interaction.
 * Area measurement: Click on the edges of the area you would like to 
 measure. Accept the measurements by pressing ENTER or middle mouse button.
 After area selection, there is possibility to count features (and density)
-inside the selected area. Density is computed and stored automatically.
+inside the selected area. Density is computed and stored automatically. 
+Units are square micrometers. Density unit is number of features per square
+micrometer.
 
 * Length measurement: Click two points between which you would like to 
 measure distance. After completition, user will be asked whether he/she wishes
-to continue with length measurements or quit length measurements.
+to continue with length measurements or quit length measurements. Units are
+square micrometers.
 
 Saving results
 --------------
