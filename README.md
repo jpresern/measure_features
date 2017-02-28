@@ -48,7 +48,9 @@ Measuring
 Script offers measuring of two qualities, accessible via console interaction.
 
 * Area measurement: Click on the edges of the area you would like to 
-measure. Accept the measurements by pressing ENTER or middle mouse button.
+measure. Mark point in succession, ** do not jump back and forth**. Such
+selection can lead to misinterpretation what was the selected surface.
+Accept the measurements by pressing ENTER or middle mouse button.
 After area selection, there is possibility to count features (and density)
 inside the selected area. Density is computed and stored automatically. 
 Units are square micrometers. Density unit is number of features per square

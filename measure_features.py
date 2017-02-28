@@ -9,6 +9,7 @@ import sys
 import re
 import pandas as pd
 import numpy as np
+import math
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatch
@@ -365,6 +366,14 @@ def select_area(file, figa, axa2, store, store_short, im_ix, pixsize=1, count=0)
     figa.suptitle(file)
     axa2.set_title('Select corners of the area you are interested in. Press ENTER when done')
     x = np.asarray(fig.ginput(n=-1, timeout=0))
+
+    """ conversion to polar coordinates and sort, convert back"""
+    x = list(tuple(map(tuple, x)))
+    cent = (sum([xx[0] for xx in x]) / len(x), sum([xx[1] for xx in x]) / len(x))
+    # sort by polar angle
+    x.sort(key=lambda xx: math.atan2(xx[1] - cent[1], xx[0] - cent[0]))
+    x = np.array(x)
+
     ph.append(axa2.add_patch(mpatch.Polygon(x, facecolor=farba[count % len(farba)], alpha=0.2)))
     figa.canvas.manager.window.iconify()
     axa2.set_title('Are you happy? Press Y to store data or N to drop them')
