@@ -391,7 +391,7 @@ def select_area(file, figa, axa2, store, store_short, im_ix, pixsize=1, count=0)
         if mark_yesno == 'y':
             figa.canvas.manager.window.deiconify()
             figa.canvas.manager.window.tkraise()
-            features = mark_features(figa, axa2, colore=farba[count], drawn_path=p)
+            features = mark_features(figa, axa2, colore=farba[count % len(farba)], drawn_path=p)
             store, store_short = store_features(store, store_short, file, features, surface_area, parallel=count)
             figa.canvas.manager.window.iconify()
         del x, p, surface_area
