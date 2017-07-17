@@ -57,7 +57,7 @@ def get_bulk_saved(store, store_short, dir):
 if __name__ == '__main__':
 
     """ declare myself """
-
+    #TODO: implement imutils.skeletonize
     print("=============================================================")
     print("|    Measure features - Simple tool for simple jobs v.1.1   |")
     print("|                                                           |")

@@ -10,6 +10,7 @@ import re
 import pandas as pd
 import numpy as np
 import math
+import cv2
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatch
@@ -90,26 +91,30 @@ def four_point_transform(image, pts):
 def image_display(image_fn, meta_fn):
     """ read in the image file """
     img = mimg.imread(image_fn)
+    # if img.shape[0] > img.shape[1]:
+    #     img = PIL.Image.fromarray(img)
+    #     img = np.array(img.rotate(90))
 
     """ show loaded image """
     figure, axis2, axis1 = drawing_board()
-    axis1.imshow(img)
+    axis2.imshow(img)
     figure.show()
 
     """ get experimental metadata"""
     mag, bar, bar_pixels, zeitgeist, datum = read_in_settings(meta_fn, fig=figure, ax2=axis2)
-    pix_size = pixel_size(bar, bar_pixels)
+    px_size = pixel_size(bar, bar_pixels)
 
     """ cosmetics """
-    axis2.set_xticklabels(np.round(axis2.get_xticks() * pix_size, 2))
-    axis2.set_yticklabels(np.round(axis2.get_yticks() * pix_size, 2))
-    axis2.set_xlabel(r'width [$\mu$m]')
-    axis2.set_ylabel(r'height [$\mu$m]')
+    axis2.set_xticklabels(np.round(axis2.get_xticks() * px_size[0], 2))
+    axis2.set_yticklabels(np.round(axis2.get_yticks() * px_size[1], 2))
+    axis2.set_xlabel(r'width [$px$]')
+    axis2.set_ylabel(r'height [$px$]')
+    axis2.set_title(image_fn)
 
     """ create img coordinate pairs"""
     im_ind = create_coord_pairs(img.shape)
 
-    return figure, axis2, im_ind, pix_size
+    return figure, axis2, im_ind, px_size, img
 
 
 def get_things_saved(figa, store, store_short, file_name, suggested_name):
@@ -263,7 +268,7 @@ def drawing_board():
 
     # TODO: separate axis for image and for labeling. This will allow layering of .pdf, hopefully
 
-    figure = plt.figure(figsize=(8, 7.5))
+    figure = plt.figure(figsize=(8, 8))
     axis2 = figure.add_axes([0.1, 0.1, 0.85, 0.85])
     # axis1 = axis2.twinx()
     # axis1.set_yticks([])
@@ -295,7 +300,7 @@ def pixel_size(bar_size, bar_size_pixels):
 
     pix_size = bar_size / bar_size_pixels
 
-    return pix_size
+    return (pix_size, pix_size)
 
 
 def read_in_settings(file_name, fig, ax2):
@@ -412,7 +417,7 @@ def create_coord_pairs(image_shape):
 def measure_surface(path, im_ix, pixie_size):
 
     patch_points = list(compress(im_ix, path.contains_points(im_ix)))
-    area = len(patch_points) * pixie_size * pixie_size
+    area = len(patch_points) * pixie_size[0] * pixie_size[1]
 
     return area
 
@@ -454,11 +459,11 @@ def select_area(file, figa, axa2, store, store_short, im_ix, pixsize=1, count=0)
     farba = [cm.Set1(x) for x in color_spread1]
     ph = []
     ph_count = 0
-    figa.canvas.manager.window.deiconify()
-    figa.canvas.manager.window.tkraise()
+    # figa.canvas.manager.window.deiconify()
+    # figa.canvas.manager.window.tkraise()
     figa.suptitle(file)
     axa2.set_title('Select corners of the area you are interested in. Press ENTER when done')
-    x = np.asarray(fig.ginput(n=-1, timeout=0))
+    x = np.asarray(figa.ginput(n=-1, timeout=0))
 
     """ conversion to polar coordinates and sort, convert back"""
     x = list(tuple(map(tuple, x)))
@@ -468,7 +473,7 @@ def select_area(file, figa, axa2, store, store_short, im_ix, pixsize=1, count=0)
     x = np.array(x)
 
     ph.append(axa2.add_patch(mpatch.Polygon(x, facecolor=farba[count % len(farba)], alpha=0.2)))
-    figa.canvas.manager.window.iconify()
+    # figa.canvas.manager.window.iconify()
     axa2.set_title('Are you happy? Press Y to store data or N to drop them')
     happiness = input('Are you happy? Press Y to store data or N to drop them\n')
 
@@ -482,11 +487,11 @@ def select_area(file, figa, axa2, store, store_short, im_ix, pixsize=1, count=0)
         mark_yesno = input('Do you wish to mark features inside area? Y or N\n')
 
         if mark_yesno == 'y':
-            figa.canvas.manager.window.deiconify()
-            figa.canvas.manager.window.tkraise()
+            # figa.canvas.manager.window.deiconify()
+            # figa.canvas.manager.window.tkraise()
             features = mark_features(figa, axa2, colore=farba[count % len(farba)], drawn_path=p)
             store, store_short = store_features(store, store_short, file, features, surface_area, parallel=count)
-            figa.canvas.manager.window.iconify()
+            # figa.canvas.manager.window.iconify()
         del x, p, surface_area
 
     elif happiness == 'n':
@@ -494,28 +499,35 @@ def select_area(file, figa, axa2, store, store_short, im_ix, pixsize=1, count=0)
         ph[ph_count].remove()
         del x
 
-    return store, store_short, count
+    return store, store_short, count, figa, axa2
 
 
 def measure_distance(file, figa, axis2, store, store_short, pix=1, count=0):
     axis2.set_title('Measure distance between two points')
     more = 'y'
     while more == 'y':
-        figa.canvas.manager.window.deiconify()
-        figa.canvas.manager.window.tkraise()
+        # figa.canvas.manager.window.deiconify()
+        # figa.canvas.manager.window.tkraise()
         xy = np.asarray(figa.ginput(n=2, timeout=0))
-        dist = np.linalg.norm(xy[0] - xy[1])
-        dist *= pix
+        # dist = np.linalg.norm(xy[0] - xy[1])
+        # dist_test = np.linalg.norm(xy[0]*pix[0] - xy[1]*pix[1])
+
+        dist = np.linalg.norm(xy[0]*pix[0] - xy[1]*pix[1])
+
+        dist *= pix[0]
         linija = axis2.plot(xy[:, 0], xy[:, 1], marker="+", markersize=8)
         axis2.text(np.mean(xy, axis=0)[0], np.mean(xy, axis=0)[1], str(np.round(dist, 1)) + r' $\mu$m',
                    color=linija[0].get_color())
+        # axis2.text(np.mean(xy, axis=0)[0] + 0.05, np.mean(xy, axis=0)[1] +0.05, str(np.round(dist_test, 1)) + r' $\mu$m',
+        #            color=linija[0].get_color())
+
         store, store_short = store_distance(store, store_short, file, xy, distance=dist, parallel=count)
         count += 1
-        figa.canvas.manager.window.iconify()
+        # figa.canvas.manager.window.iconify()
         axis2.set_title('One more? Y/N')
         more = input('One more? Y/N\n')
     axis2.set_title('')
-    return store, store_short, count
+    return store, store_short, count, figa, axis2
 
 
 def measure_ci(file, figa, axis2, store, store_short, pix=1, count=0):
@@ -588,7 +600,6 @@ def bulk_measure_ci(file, figa, axis2, store, store_short, pix=1, count=0):
     return store, store_short, count
 
 
-
 def redraw_stored_things(axis2, store):
 
     """ draw selecteda areas with marked features
@@ -648,25 +659,6 @@ def load_measurements(file, file2):
     return store, store_short, figa, axis, pix, im_ix
 
 
-def stretch_comb(file, figa, axa2):
-    """
-    Stretch out comb photo
-    :param file:
-    :param figa:
-    :param axa2:
-    :return:
-    """
-
-
-    figa.canvas.manager.window.deiconify()
-    figa.canvas.manager.window.tkraise()
-    figa.suptitle(file)
-    axa2.set_title('Select corners of the comb you will be counting bees on. Press ENTER when done')
-    x = np.asarray(fig.ginput(n=4, timeout=0))
-
-    comb = four_point_transform(file, x)
-    return comb
-
 if __name__ == '__main__':
 
     """ declare myself """
@@ -720,7 +712,7 @@ if __name__ == '__main__':
         else:
 
             """ load image, load meta data, display image and calibrate """
-            fig, ax2, im_index, pix_size = image_display(filename, fn)
+            fig, ax2, im_index, pix_size, imago = image_display(filename, fn)
 
             """ prepare empty storage """
             storage = prepare_storage()
@@ -733,7 +725,7 @@ if __name__ == '__main__':
         while stay:
             fig.canvas.manager.window.iconify()
             ax2.set_title('Now what? Measure (A)rea, count (B)ees, cubital (I)ndex, Measure (L)ength, (C)lose image')
-            now_what = input('Now what? Measure (A)rea, count(B)ees, cubital (I)ndex, Measure (L)ength, (C)lose image\n')
+            now_what = input('Now what? Measure (A)rea, count (B)ees, cubital (I)ndex, Measure (L)ength, (C)lose image\n')
             if now_what == 'a':
                 fig.canvas.manager.window.deiconify()
                 fig.canvas.manager.window.tkraise()
